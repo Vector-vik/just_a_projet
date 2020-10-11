@@ -1,0 +1,58 @@
+version: '3.3'
+
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: source/controller/dockerfile.Dockerfile
+    restart: always
+    ports:
+      - 5000:5000
+    environment:
+      APP_NAME: controller
+      APP_VERSION: v0.1
+      DEBUG: 1
+      LOGGER_LEVEL: 20
+      DB_URL: postgresql+psycopg2://postgres:123@0.0.0.0:5432/controller
+      DB_NAME: controller
+      QUEUE_NAME: controller_queue
+
+  worker:
+    build:
+      context: .
+      dockerfile: source/worker/dockerfile.Dockerfile
+    restart: always
+    environment:
+      APP_NAME: worker
+      APP_VERSION: v0.1
+      LOGGER_LEVEL: 20
+      QUEUE_NAME: controller_queue
+
+  postgresql:
+    image: postgres
+    volumes:
+      - db-data-2:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: controller
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    volumes:
+      - ./.docker/rabbitmq/etc/:/etc/rabbitmq/
+      - ./.docker/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./.docker/rabbitmq/logs/:/var/log/rabbitmq/
+    ports:
+      - 5672:5672
+      - 15672:15672
+    restart: always
+
+volumes:
+  db-data-2:
+    driver: local
